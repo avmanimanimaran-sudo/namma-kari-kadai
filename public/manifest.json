@@ -1,0 +1,22 @@
+{
+    "name": "Namma Kari Kadai",
+    "short_name": "Kari Kadai",
+    "description": "Order fresh broiler and country chicken (naatu kozhi) online.",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#0f172a",
+    "theme_color": "#e63946",
+    "icons": [
+        {
+            "src": "/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ],
+    "orientation": "portrait"
+}
