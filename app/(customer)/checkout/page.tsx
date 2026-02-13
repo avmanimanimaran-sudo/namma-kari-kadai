@@ -53,12 +53,10 @@ export default function CheckoutPage() {
                 .from('orders')
                 .insert({
                     id: orderId,
-                    guest_name: name,
-                    guest_phone: phone,
-                    total_amount: totalAmount,
-                    pickup_date: pickupDate,
-                    pickup_time_slot: pickupTime,
-                    status: 'pending',
+                    name: name,
+                    phone: phone,
+                    date: pickupDate,
+                    time: pickupTime,
                     payment_method: 'cash'
                 });
 
