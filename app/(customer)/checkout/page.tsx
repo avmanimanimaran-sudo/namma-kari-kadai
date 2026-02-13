@@ -45,9 +45,14 @@ export default function CheckoutPage() {
 
         try {
             // 1. Save to Supabase
-            const { data: order, error: orderError } = await supabase
+            // 1. Generate ID Client Side (Bypass RLS Select issue)
+            const orderId = crypto.randomUUID();
+
+            // 2. Save to Supabase
+            const { error: orderError } = await supabase
                 .from('orders')
                 .insert({
+                    id: orderId,
                     guest_name: name,
                     guest_phone: phone,
                     total_amount: totalAmount,
@@ -55,15 +60,16 @@ export default function CheckoutPage() {
                     pickup_time_slot: pickupTime,
                     status: 'pending',
                     payment_method: 'cash'
-                })
-                .select()
-                .single();
+                });
 
-            if (orderError) throw orderError;
+            if (orderError) {
+                console.error('Supabase Order Insert Error:', orderError);
+                throw orderError;
+            }
 
-            // 2. Save items
+            // 3. Save items
             const orderItems = items.map(item => ({
-                order_id: order.id,
+                order_id: orderId,
                 item_type: item.itemType,
                 cut_type: item.cutType,
                 quantity: item.quantity,
@@ -75,12 +81,15 @@ export default function CheckoutPage() {
                 .from('order_items')
                 .insert(orderItems);
 
-            if (itemsError) throw itemsError;
+            if (itemsError) {
+                console.error('Supabase Order Items Insert Error:', itemsError);
+                throw itemsError;
+            }
 
             // 3. Generate WhatsApp Message
             const itemDetails = items.map(i => `${i.itemType} (${i.quantity}${i.unit}, ${i.cutType})`).join(', ');
             const message = encodeURIComponent(
-                `🍗 *New Order: #${order.id.slice(0, 4)}*\n\n` +
+                `🍗 *New Order: #${orderId.slice(0, 4)}*\n\n` +
                 `Customer: ${name} (${phone})\n` +
                 `Items: ${itemDetails}\n` +
                 `Total: ₹${totalAmount}\n` +
@@ -93,7 +102,7 @@ export default function CheckoutPage() {
 
             // Open WhatsApp (User's choice usually, but for this flow we can open it)
             // Here we go to success page first
-            router.push(`/order/success?id=${order.id}&wa=${message}`);
+            router.push(`/order/success?id=${orderId}&wa=${message}`);
 
         } catch (e) {
             console.error('Order failed', e);
