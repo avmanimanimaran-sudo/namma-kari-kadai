@@ -2,33 +2,32 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
-import { supabase } from '@/lib/supabase/client';
-import type { Rate } from '@/types';
+import api from '@/services/api';
+import type { Product } from '@/types';
 
 export default function HomePage() {
-  const [rates, setRates] = useState<Rate[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchRates() {
+    async function fetchProducts() {
       try {
-        const { data, error } = await supabase
-          .from('rates')
-          .select('*')
-          .eq('is_active', true);
-
-        if (data) setRates(data);
+        const { data } = await api.get('/products');
+        if (data) setProducts(data);
       } catch (e) {
-        console.error('Error fetching rates', e);
+        console.error('Error fetching products', e);
       } finally {
         setLoading(false);
       }
     }
-    fetchRates();
+    fetchProducts();
   }, []);
 
-  const broilerPrice = rates.find(r => r.item_type === 'broiler')?.price_per_kg || 240;
-  const countryPrice = rates.find(r => r.item_type === 'country')?.price_per_kg || 650;
+  const broilerProduct = products.find(p => p.category === 'broiler');
+  const countryProduct = products.find(p => p.category === 'country');
+
+  const broilerPrice = broilerProduct?.price || 240;
+  const countryPrice = countryProduct?.price || 650;
 
   return (
     <main className="min-h-screen pb-20 p-4 max-w-md mx-auto relative overflow-hidden">
@@ -63,7 +62,17 @@ export default function HomePage() {
           <Button
             className="mt-4 w-full"
             variant="primary"
-            onClick={() => window.location.href = `/order?type=broiler&price=${broilerPrice}`}
+            onClick={() => {
+              if (broilerProduct) {
+                // We need to fetch/store Cart with more details or redirect to Order Page which handles options?
+                // The previous code redirected: window.location.href = `/order?type=broiler&price=${broilerPrice}`
+                // But we want to use the CartProvider directly if possible, or keep the flow.
+                // The `order` page (app/order/page.tsx) likely handles cut selection etc.
+                // I should verify `app/order/page.tsx` before assuming.
+                // For now, let's keep the redirect but update the URL params if needed or just keep it.
+                window.location.href = `/order?type=broiler&price=${broilerPrice}&id=${broilerProduct._id}`;
+              }
+            }}
           >
             Order Broiler
           </Button>
@@ -79,7 +88,11 @@ export default function HomePage() {
           </div>
           <Button
             className="mt-4 w-full bg-amber-600 hover:bg-amber-700 text-white"
-            onClick={() => window.location.href = `/order?type=country&price=${countryPrice}`}
+            onClick={() => {
+              if (countryProduct) {
+                window.location.href = `/order?type=country&price=${countryPrice}&id=${countryProduct._id}`;
+              }
+            }}
           >
             Order Naatu Kozhi
           </Button>

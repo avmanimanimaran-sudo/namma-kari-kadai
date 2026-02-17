@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 
 export default function AdminLayout({
     children,
@@ -13,25 +13,19 @@ export default function AdminLayout({
 }) {
     const router = useRouter();
     const pathname = usePathname();
-    const [loading, setLoading] = useState(true);
+    const { user, isLoading, logout } = useAuth();
 
     useEffect(() => {
-        const checkUser = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
-                router.push('/admin/login');
+        if (!isLoading) {
+            if (!user || user.role !== 'admin') {
+                if (!pathname.includes('/login')) {
+                    router.push('/admin/login');
+                }
             }
-            setLoading(false);
-        };
-
-        if (!pathname.includes('/login')) {
-            checkUser();
-        } else {
-            setLoading(false);
         }
-    }, [router, pathname]);
+    }, [user, isLoading, router, pathname]);
 
-    if (loading) return <div className="min-h-screen flex items-center justify-center">Loading Admin...</div>;
+    if (isLoading) return <div className="min-h-screen flex items-center justify-center">Loading Admin...</div>;
 
     if (pathname.includes('/login')) return <>{children}</>;
 
@@ -52,8 +46,8 @@ export default function AdminLayout({
                             key={link.href}
                             href={link.href}
                             className={`flex items-center p-3 rounded-xl transition-all ${pathname === link.href
-                                    ? 'bg-primary text-white'
-                                    : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                                ? 'bg-primary text-white'
+                                : 'text-gray-400 hover:bg-white/5 hover:text-white'
                                 }`}
                         >
                             <span className="mr-3 text-xl">{link.icon}</span>
@@ -62,7 +56,7 @@ export default function AdminLayout({
                     ))}
                 </nav>
                 <button
-                    onClick={() => supabase.auth.signOut().then(() => router.push('/admin/login'))}
+                    onClick={() => logout()}
                     className="p-3 text-left text-red-400 hover:bg-red-500/10 rounded-xl transition-all"
                 >
                     Sign Out
@@ -73,7 +67,7 @@ export default function AdminLayout({
             <main className="flex-1 overflow-y-auto">
                 <header className="md:hidden p-4 border-b border-white/5 flex justify-between items-center bg-surface">
                     <span className="font-bold">Admin Panel</span>
-                    <button onClick={() => supabase.auth.signOut()} className="text-sm text-red-400">Logout</button>
+                    <button onClick={() => logout()} className="text-sm text-red-400">Logout</button>
                 </header>
                 <div className="p-4 md:p-8">
                     {children}

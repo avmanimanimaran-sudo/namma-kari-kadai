@@ -2,11 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase/client';
+import api from '@/services/api';
+import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/Button';
 
 export default function AdminLoginPage() {
     const router = useRouter();
+    const { login } = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -18,17 +20,28 @@ export default function AdminLoginPage() {
         setError('');
 
         try {
-            const { error } = await supabase.auth.signInWithPassword({
-                email,
-                password,
+            const { data } = await api.post('/auth/login', { email, password });
+
+            // Map backend response to AuthContext expectation
+            login({
+                user: {
+                    id: data._id,
+                    full_name: data.name,
+                    role: data.role,
+                    phone: '', // Backend login doesn't return phone right now, maybe update backend or ignore
+                    loyalty_points: 0,
+                    created_at: '',
+                },
+                accessToken: data.token,
             });
 
-            if (error) throw error;
-
-            // Check if user is admin (simple role check later, for now just login success)
-            router.push('/admin/dashboard');
+            if (data.role === 'admin') {
+                router.push('/admin/dashboard');
+            } else {
+                setError('Not authorized as admin');
+            }
         } catch (err: any) {
-            setError(err.message);
+            setError(err.response?.data?.message || 'Login failed');
         } finally {
             setLoading(false);
         }

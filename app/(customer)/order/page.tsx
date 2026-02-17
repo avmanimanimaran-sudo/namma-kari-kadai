@@ -18,6 +18,9 @@ function OrderContent() {
     const type = searchParams.get('type') as 'broiler' | 'country' || 'broiler';
     const price = Number(searchParams.get('price')) || 240;
 
+    const id = searchParams.get('id') || '';
+    const image = type === 'broiler' ? '/images/broiler.jpg' : '/images/country.jpg'; // Placeholder or actual image logic
+
     const { addToCart } = useCart();
 
     const [quantity, setQuantity] = useState(1);
@@ -37,7 +40,9 @@ function OrderContent() {
             cutType,
             quantity,
             unit,
-            price: price
+            price: price,
+            productId: id,
+            image: image
         });
         router.push('/checkout');
     };
@@ -77,8 +82,8 @@ function OrderContent() {
                             key={cut.id}
                             onClick={() => setCutType(cut.id)}
                             className={`p-4 rounded-xl border text-left transition-all ${cutType === cut.id
-                                    ? 'bg-primary/20 border-primary text-white'
-                                    : 'bg-surface border-white/5 text-gray-400 hover:bg-surface/80'
+                                ? 'bg-primary/20 border-primary text-white'
+                                : 'bg-surface border-white/5 text-gray-400 hover:bg-surface/80'
                                 }`}
                         >
                             <div className="text-2xl mb-1">{cut.icon}</div>

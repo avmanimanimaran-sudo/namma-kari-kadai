@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/components/features/CartProvider';
 import { Button } from '@/components/ui/Button';
-import { supabase } from '@/lib/supabase/client';
+import api from '@/services/api';
 
 const TIME_SLOTS = [
     'Morning 7AM - 9AM',
@@ -44,50 +44,37 @@ export default function CheckoutPage() {
         setIsSubmitting(true);
 
         try {
-            // 1. Save to Supabase
-            // 1. Generate ID Client Side (Bypass RLS Select issue)
-            const orderId = crypto.randomUUID();
-
-            // 2. Save to Supabase
-            const { error: orderError } = await supabase
-                .from('orders')
-                .insert({
-                    id: orderId,
-                    name: name,
-                    phone: phone,
+            // Construct Order Payload
+            const orderPayload = {
+                orderItems: items.map(item => ({
+                    name: item.itemType,
+                    qty: item.quantity,
+                    image: item.image,
+                    price: item.price,
+                    cutType: item.cutType,
+                    unit: item.unit,
+                    product: item.productId || '000000000000000000000000', // Handle missing ID if any
+                })),
+                pickupDetails: {
+                    name,
+                    phone,
                     date: pickupDate,
                     time: pickupTime,
-                    payment_method: 'cash'
-                });
+                },
+                paymentMethod: 'Cash',
+                itemsPrice: totalAmount,
+                taxPrice: 0,
+                shippingPrice: 0,
+                totalPrice: totalAmount,
+            };
 
-            if (orderError) {
-                console.error('Supabase Order Insert Error:', orderError);
-                throw orderError;
-            }
+            // Call Backend API
+            const { data } = await api.post('/orders', orderPayload);
 
-            // 3. Save items
-            const orderItems = items.map(item => ({
-                order_id: orderId,
-                item_type: item.itemType,
-                cut_type: item.cutType,
-                quantity: item.quantity,
-                unit: item.unit,
-                price_at_time: item.price
-            }));
-
-            const { error: itemsError } = await supabase
-                .from('order_items')
-                .insert(orderItems);
-
-            if (itemsError) {
-                console.error('Supabase Order Items Insert Error:', itemsError);
-                throw itemsError;
-            }
-
-            // 3. Generate WhatsApp Message
+            // Generate WhatsApp Message
             const itemDetails = items.map(i => `${i.itemType} (${i.quantity}${i.unit}, ${i.cutType})`).join(', ');
             const message = encodeURIComponent(
-                `🍗 *New Order: #${orderId.slice(0, 4)}*\n\n` +
+                `🍗 *New Order: #${data._id.slice(-6)}*\n\n` +
                 `Customer: ${name} (${phone})\n` +
                 `Items: ${itemDetails}\n` +
                 `Total: ₹${totalAmount}\n` +
@@ -95,12 +82,13 @@ export default function CheckoutPage() {
                 `Namma Kari Kadai`
             );
 
-            // 4. Redirect to Success / WhatsApp
+            // Clear Cart and Redirect
             clearCart();
-
-            // Open WhatsApp (User's choice usually, but for this flow we can open it)
-            // Here we go to success page first
-            router.push(`/order/success?id=${orderId}&wa=${message}`);
+            // Assuming the success page is capable of handling the new ID format or just generic success
+            // If Success page fetches from Supabase, it might fail.
+            // But usually success page just shows "Order Placed".
+            // Let's redirect to success with the order details or just the ID.
+            router.push(`/order/success?id=${data._id}&wa=${message}`);
 
         } catch (e) {
             console.error('Order failed', e);

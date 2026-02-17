@@ -9,6 +9,8 @@ export type CartItem = {
     quantity: number;
     unit: 'kg' | 'pieces';
     price: number;
+    productId: string;
+    image: string;
 };
 
 interface CartContextType {

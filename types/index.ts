@@ -11,6 +11,17 @@ export interface User {
 
 export type ItemType = 'broiler' | 'country';
 
+export interface Product {
+    _id: string;
+    name: string;
+    description: string;
+    price: number;
+    category: 'broiler' | 'country' | string;
+    image: string;
+    inStock: boolean;
+    stockCount: number;
+}
+
 export interface Rate {
     id: string;
     item_type: ItemType;
@@ -30,14 +41,45 @@ export interface Stock {
 export type OrderStatus = 'pending' | 'confirmed' | 'ready' | 'completed' | 'cancelled';
 
 export interface Order {
-    id: string;
-    user_id?: string;
-    guest_phone?: string;
-    guest_name?: string;
-    status: OrderStatus;
-    total_amount: number;
-    payment_method: 'cash' | 'upi' | 'online';
-    pickup_date: string;
-    pickup_time_slot: string;
-    created_at: string;
+    _id: string;
+    user: any; // Populated user object or ID
+    orderItems: {
+        name: string;
+        qty: number;
+        image: string;
+        price: number;
+        cutType: string;
+        unit: string;
+        product: string;
+    }[];
+    shippingAddress?: {
+        address: string;
+        city: string;
+        postalCode: string;
+        country: string;
+    };
+    pickupDetails?: {
+        name: string;
+        phone: string;
+        date: string;
+        time: string;
+    };
+    paymentMethod: string;
+    paymentResult?: {
+        id: string;
+        status: string;
+        update_time: string;
+        email_address: string;
+    };
+    itemsPrice: number;
+    taxPrice: number;
+    shippingPrice: number;
+    totalPrice: number;
+    isPaid: boolean;
+    paidAt?: string;
+    isDelivered: boolean;
+    deliveredAt?: string;
+    status: 'Placed' | 'Confirmed' | 'Out for Delivery' | 'Delivered' | 'Cancelled';
+    createdAt: string;
+    updatedAt: string;
 }

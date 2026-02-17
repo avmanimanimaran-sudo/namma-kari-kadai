@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase/client';
+import api from '@/services/api';
+import type { Order } from '@/types';
 
 export default function AdminDashboard() {
     const [stats, setStats] = useState({
@@ -12,19 +13,23 @@ export default function AdminDashboard() {
 
     useEffect(() => {
         async function fetchStats() {
-            const today = new Date().toISOString().split('T')[0];
+            try {
+                const { data: orders } = await api.get<Order[]>('/orders');
 
-            const { data: orders, error } = await supabase
-                .from('orders')
-                .select('*')
-                .gte('created_at', `${today}T00:00:00`);
+                const today = new Date().toISOString().split('T')[0];
+                const todayOrders = orders.filter(o => o.createdAt.startsWith(today));
 
-            if (orders) {
                 setStats({
-                    todayOrders: orders.length,
-                    pendingOrders: orders.filter(o => o.status === 'pending').length,
-                    totalRevenue: orders.reduce((sum, o) => sum + Number(o.total_amount), 0),
+                    todayOrders: todayOrders.length,
+                    pendingOrders: orders.filter(o => o.status === 'Placed').length,
+                    // Backend enum: ['Placed', 'Confirmed', 'Out for Delivery', 'Delivered', 'Cancelled']
+                    // Frontend types: 'pending' | 'confirmed' ...
+                    // I need to align these. Let's map 'Placed' to 'pending' concept or update frontend types.
+                    // For now, let's count 'Placed' as pending.
+                    totalRevenue: todayOrders.reduce((sum, o) => sum + Number(o.totalPrice), 0),
                 });
+            } catch (e) {
+                console.error('Error fetching admin stats', e);
             }
         }
         fetchStats();
